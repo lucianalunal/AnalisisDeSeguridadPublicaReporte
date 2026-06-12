@@ -6,7 +6,7 @@ El análisis fue desarrollado en el marco del programa de **Ingeniería Matemát
 
 ---
 
-## 📋 Contenido del Repositorio
+## Contenido del Repositorio
 
 El repositorio está organizado de la siguiente manera:
 
@@ -42,7 +42,7 @@ Para replicar el análisis y compilar el reporte R Markdown, es necesario contar
 
 ---
 
-## 📐 Aspectos Metodológicos Clave
+## Aspectos Metodológicos Clave
 
 *   **Factores de Expansión**: Se utilizaron de forma rigurosa los pesos muestrales provistos por el INEGI:
     *   `FAC_ELE` / `FAC_ELE_AM`: Para inferencia sobre variables a nivel de persona (percepción y victimización personal).
@@ -52,7 +52,7 @@ Para replicar el análisis y compilar el reporte R Markdown, es necesario contar
 
 ---
 
-## 📈 Hallazgos Principales
+## Hallazgos Principales
 
 1.  **Crecimiento Poblacional**: La población adulta (18+) en Querétaro experimentó un crecimiento acelerado de más del 30% entre 2019 y 2024, pasando de 1.37 millones a 1.84 millones.
 2.  **Tasa de Victimización**: Después de una caída durante la pandemia (2020), la tasa estatal repuntó hasta alcanzar **28,790 víctimas por cada 100,000 habitantes** en 2024.
