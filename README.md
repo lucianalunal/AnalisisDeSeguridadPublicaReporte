@@ -22,7 +22,7 @@ El repositorio está organizado de la siguiente manera:
 
 ---
 
-## 🛠️ Requisitos e Instalación
+## Requisitos e Instalación
 
 Para replicar el análisis y compilar el reporte R Markdown, es necesario contar con:
 
