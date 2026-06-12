@@ -62,7 +62,7 @@ Para replicar el análisis y compilar el reporte R Markdown, es necesario contar
 
 ---
 
-## 👥 Autores
+## Autores
 
 *   **Luna Aguado Luciana**
 *   **Ramírez Mendoza Jorge Raúl**
