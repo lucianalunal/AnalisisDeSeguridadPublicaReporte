@@ -1,0 +1,582 @@
+---
+title: "Análisis de Seguridad Pública: Reporte"
+subtitle: "Ingeniería Matemática: Percepción Ciudadana en Querétaro"
+author: "Luna Aguado Luciana; Ramírez Mendoza Jorge Raúl"
+date: "21/05/2026"
+output: 
+  pdf_document:
+    latex_engine: xelatex
+---
+
+# 1. Introducción al Fenómeno de Percepción
+
+La Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE), elaborada por el Instituto Nacional de Estadística y Geografía (INEGI) desde 2011, es una herramienta estadística clave para generar información confiable sobre la incidencia delictiva, las características de los delitos, las víctimas y la percepción ciudadana en torno a la seguridad pública y el desempeño institucional en México. Gracias a su representatividad a nivel nacional y estatal, permite analizar la evolución de indicadores clave, identificar regiones con mayor afectación y comprender la brecha entre la victimización real y la percepción de inseguridad.
+
+En este contexto, el presente reporte se enfoca en el estado de Querétaro, utilizando los microdatos de las ediciones 2020 a 2025 (con años de referencia de 2019 a 2024). Se analizan principalmente datos relativos a la violencia, el delito y su percepción, así como sus consecuencias en la vida de los queretanos. Además, se desciende al ámbito municipal para los tres municipios que conforman el Área Urbana de Interés (AUI) de la zona metropolitana de Querétaro: Querétaro, Corregidora y El Marqués. Este ejercicio permite contrastar la realidad estatal con la heterogeneidad interna y evaluar hasta qué punto el diseño muestral de la ENVIPE permite estimaciones locales.
+
+Asimismo, se reconoce que la seguridad pública no solo debe evaluarse a partir de la incidencia delictiva objetiva, sino también desde su dimensión subjetiva: la percepción de seguridad. Este componente es clave para el diseño de políticas públicas y su análisis desde enfoques como la Ingeniería Matemática, ya que, como han demostrado Di Tella, Galiani y Schargrodsky (2010), el temor al delito influye significativamente en el comportamiento económico, la inversión, la movilidad social y el bienestar psicológico de la población.
+
+# 2. Consideraciones Metodológicas
+
+El tratamiento de los datos se realizó siguiendo un análisis cuidadoso, considerando tanto el diseño muestral de la ENVIPE como criterios de consistencia temporal (comparativas ) y representatividad poblacional (factores de expansión correspondientes). Las principales directrices metodológicas fueron las siguientes:
+
+- *Unidad de observación*: Personas de 18 años y más residentes en el Estado de Querétaro.
+- *Alineación temporal*: Se ajustó el año de levantamiento de la encuesta al año real de referencia del fenómeno delictivo, con el fin de sincronizar correctamente las estimaciones.
+- *Inferencia poblacional*: Se consideró cómo está diseñada la encuesta mediante el uso de factores de expansión, lo que permite transitar de estimaciones muestrales a parámetros poblacionales.
+
+# 3. Definiciones
+## 3.1. Víctima
+
+Se considera como víctima a toda persona que reportó haber sufrido al menos uno de los siguientes delitos, bajo criterios específicos de validación:
+
+- Robo o asalto en calle o transporte, 
+- Robo en otra modalidad, 
+- Fraude bancario, 
+- Fraude al consumidor, 
+- Amenazas, 
+- Lesiones, 
+- Secuestro, 
+- Delitos sexuales u otros delitos personales.
+- Robo total de vehículo, siempre que este pertenezca al hogar.
+- Robo de accesorios o refacciones de vehículo, cuando estos pertenezcan al hogar.
+- Robo a casa habitación.
+
+Se excluyen casos de vandalismo y únicamente se consideran registros de entrevistas completadas con información de victimización.
+
+## 3.2. Hogar
+Según la ENVIPE, un hogar es el conjunto de personas que comparten el mismo gasto para comer (aunque vivan en la misma vivienda, pueden existir varios hogares si tienen gastos separados). Las preguntas sobre victimización en el hogar (robo en casa, secuestro de un integrante, etc.) se refieren a esta unidad de convivencia y gasto.
+
+## 3.3. Factores de expansión
+- FAC_ELE: unidad de expansión para personas de 18 años y más.Debe emplearse para todas las preguntas de percepción y para la victimización personal, así como para cualquier estimación que se desee expresar en términos de número de personas adultas (población, víctimas, etc.).
+* FAC_ELE_AM: Análogo. Específico para tratar datos de Áreas Urbanas de Interés, en el caso de Querétaro, respectivo a los municipios de Corregidora, El Marqués, Querétaro.
+
+- FAC_HOG: unidad de expansión para hogares (no personas).Debe emplearse para todas las preguntas sobre victimización en el hogar, así como para cualquier indicador expresado en número de hogares (por ejemplo, hogares que sufrieron vandalismo, homicidio, secuestro de un integrante, etc.).
+* FAC_HOG_AM: Análogo. Específico para tratar datos de Áreas Urbanas de Interés, en el caso de Querétaro, respectivo a los municipios de Corregidora, El Marqués, Querétaro.
+
+
+# 4. Fuente de los datos
+Los datos provienen de las bases de la ENVIPE correspondientes a los años 2020, 2021, 2022, 2023, 2024 y 2025, procesadas bajo un criterio homogéneo:
+
+
+```{r setup, include=FALSE}
+# ==============================================================================
+# BLOQUE 1: CONFIGURACIÓN Y DATOS (Oculto en el PDF)
+# ==============================================================================
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE, fig.align = 'center', fig.width = 7, fig.height = 5.5)
+
+library(dplyr)
+library(ggplot2)
+library(readr)
+library(tidyr)
+library(scales)
+
+# Ajuste de ruta (Asegúrate que esta ruta sea correcta en tu PC)
+setwd("C:/Users/Jay Luna/Downloads/proyecto IM1")
+
+archivos <- list.files(pattern = "resultados_municipios_[0-9]{4}\\.csv")
+
+if(length(archivos) == 0) {
+  stop("Error crítico: No se localizaron archivos CSV en el directorio.")
+}
+
+# ==============================================================================
+# 1. LECTURA Y EXTRACCIÓN DEL PARÁMETRO ESTATAL
+# ==============================================================================
+resultados <- bind_rows(lapply(archivos, read_csv)) %>% 
+
+  # Filtro metodológico: Aislamiento del agregado estatal para evitar duplicidad gráfica
+  filter(geografia == "Querétaro (Estado)") %>% 
+  arrange(año)
+
+# Impresión en consola para validación humana durante el desarrollo
+cat("Base estatal consolidada:", nrow(resultados), "observaciones (años de referencia).\n")
+```  
+ 
+# 5. La presentación de los datos en el Estado
+Antes de hablar de delitos, víctimas o percepciones de inseguridad, es importante responder una pregunta básica: ¿cuántas personas adultas hay en Querétaro?
+
+La razón es sencilla: si la población crece, es normal que aumente el número absoluto de delitos, aunque la tasa de criminalidad (es decir, la proporción de víctimas por cada 100 mil habitantes) se mantenga igual o incluso disminuya. Por eso, entender el tamaño de la población nos ayuda a no sacar conclusiones equivocadas.
+
+## 5.1. Gráfica 1. Población adulta
+La siguiente gráfica muestra cómo ha evolucionado la población adulta en Querétaro entre 2019 y 2024.
+
+```{r grafica1_poblacion}
+# ==============================================================================
+# BLOQUE 2: GRÁFICA (Visible en el PDF)
+# ==============================================================================
+tema_reporte <- theme_minimal(base_family = "sans") +
+  theme(
+    plot.title = element_text(face = "bold", size = 12, color = "#2C3E50", hjust = 0.5),
+    plot.subtitle = element_text(size = 10, color = "gray40", hjust = 0.5),
+    axis.title = element_text(face = "italic", size = 11),
+    panel.grid.minor = element_blank()
+  )
+
+ggplot(resultados, aes(x = año, y = poblacion)) +
+  geom_line(color = "#2E8B57", size = 1.2) +
+  geom_point(color = "#1B5E20", size = 3) +
+  geom_text(aes(label = paste0(round(poblacion / 1e6, 2), "M")), vjust = -1.2, size = 3) +
+  labs(title = "Evolución de la población adulta (18+ años) en Querétaro",
+       subtitle = "Estimaciones basadas en el factor de expansión poblacional",
+       x = "Año de Referencia", y = "Población (Millones)") +
+  scale_y_continuous(labels = label_number(scale = 1e-6, suffix = " M")) +
+  tema_reporte
+
+
+```
+
+De la gráfica podemos destacar un crecimiento constante: la línea verde muestra que, año con año, la población adulta en Querétaro ha ido aumentando de manera sostenida. Esto no es una coincidencia: refleja la atracción que el estado ha tenido como polo de desarrollo. 
+
+Un aumento notable en seis años, pues en 2019 había aproximadamente 1.37 millones de adultos en Querétaro. Para 2024, esa cifra subió a cerca de 1.84 millones. Esto significa que en solo seis años se incorporaron alrededor de 470 mil personas adultas a la entidad (un crecimiento de más del 30%).
+
+Como dato relevante, podemos destacar que el año con mayor salto poblacional fue entre 2019 y 2020, lo cual podría estar relacionado con cambios en los patrones de movilidad durante la pandemia (por ejemplo, personas que regresaron con familiares o se mudaron buscando espacios más seguros).
+
+## 5.2. Gráfica 2. Tasa de victimización
+La tasa de victimización nos ayuda a responder una pregunta clave: ¿la delincuencia ha aumentado realmente o solo hay más personas? Mientras que la gráfica anterior mostraba el crecimiento poblacional, esta ajusta los delitos por cada cien mil habitantes. Así podemos comparar años de forma justa. Una tasa alta significa que, aunque la población crezca, la probabilidad de ser víctima sigue siendo preocupante.
+
+```{r grafica2_tasa de victimizacion}
+ggplot(resultados, aes(x = año, y = tasa_victimizacion)) +
+  geom_line(color = "#CD5C5C", size = 1.2) +
+  geom_point(color = "#8B0000", size = 3) +
+  geom_text(aes(label = format(round(tasa_victimizacion, 0), big.mark = ",")), vjust = -1.2, size=3) +
+  labs(title = "Tasa de victimización por cada 100 mil habitantes en Querétaro",
+       subtitle = "Prevalencia delictiva anual en el estado de Querétaro",
+       x = "Año de Referencia", y = "Tasa") +
+  tema_reporte
+
+```
+
+La tasa comenzó en 28,148 víctimas por cada cien mil en 2019, bajó a su punto más bajo en 2020 (24,976) y luego fue escalando hasta alcanzar 28,790 en 2024. Esto significa que, al final del periodo, la probabilidad de ser víctima era ligeramente más alta que al inicio. Aunque la población creció mucho, la criminalidad también repuntó después de la pandemia. Hoy, más de una de cada cuatro personas adultas en Querétaro reporta haber sufrido un delito.
+
+## 5.3. Gráfica 3. Percepción de seguridad
+La percepción de seguridad es un sentimiento, no un hecho. Una persona puede no haber sido víctima pero sentirse insegura por lo que ve en las noticias o escucha de sus vecinos. Esta gráfica muestra el porcentaje de queretanos que declararon sentirse seguros en su estado. Es un termómetro de la tranquilidad ciudadana, distinto de la victimización real. Compararla con la tasa anterior nos dará una visión más completa.
+
+```{r grafica3_percepcion de seguridad}
+ggplot(resultados, aes(x = factor(año), y = porc_seguros_estado)) +
+  geom_segment(aes(xend = factor(año), y = 0, yend = porc_seguros_estado), color = "gray80", size = 1.2) +
+  geom_point(color = "#1F9E89", size = 5) +
+  geom_text(aes(label = paste0(round(porc_seguros_estado, 1), "%")), 
+            vjust = -1.5, fontface = "bold", color = "#333333", size = 3) +
+  labs(
+    title = "Percepción de seguridad en Querétaro",
+    subtitle = "Porcentaje de población adulta que manifiesta sentirse segura en su estado",
+    x = "Año de Referencia", 
+    y = "Proporción de la Población (%)"
+  ) +
+  scale_y_continuous(limits = c(0, max(resultados$porc_seguros_estado, na.rm = TRUE) + 15)) +
+  tema_reporte
+```
+
+La percepción de seguridad ha sido relativamente estable, rondando el 40%. Comenzó en 44.2% en 2019, cayó a su punto más bajo en 2020 (38.5%) —quizás por el inicio de la pandemia— y luego se recuperó ligeramente hasta 42.6% en 2023, para volver a bajar a 41.1% en 2024. En ningún año más de la mitad de la población se sintió segura. Esto contrasta con la tasa de victimización: aunque ésta repuntó al final, la percepción no empeoró drásticamente, lo que sugiere que ambos indicadores no siempre se mueven juntos.
+
+## 5.4. Gráfica 4. Preocupación por temas de delincuencia
+Sentirse inseguro es una cosa; preocuparse por la delincuencia como problema social es otra. Esta gráfica mide el porcentaje de personas que declaran estar preocupadas por temas como el narcotráfico, la inseguridad o la corrupción, aunque no les hayan afectado directamente. Mientras que la percepción de seguridad refleja el ánimo personal, la preocupación muestra qué tanto la delincuencia ocupa la mente colectiva. Es un indicador del clima social.
+
+```{r grafica4_preocupacion por delincuencia}
+ggplot(resultados, aes(x = año, y = porc_preocupados)) +
+  geom_line(color = "#DAA520", size = 1.2) +
+  geom_point(color = "#B8860B", size = 3) +
+  geom_text(aes(label = paste0(round(porc_preocupados, 1), "%")), vjust = -1.2, size=3, fontface = "bold") +
+  labs(title = "Preocupación ciudadana por la delincuencia en Querétaro",
+       subtitle = "Incluye narcotráfico, inseguridad y corrupción",
+       x = "Año de Referencia", y = "Porcentaje (%)") +
+  tema_reporte
+
+```
+
+La preocupación se ha mantenido muy alta durante todo el periodo, siempre por encima del 78%. Comenzó en 83.2% en 2019, bajó a 78% en 2020 (quizás por el confinamiento), pero luego repuntó a 86.3% en 2021 y cerró en 85.3% en 2024. Esto significa que, año tras año, alrededor de ocho de cada diez queretanos están preocupados por la delincuencia, incluso cuando la percepción de seguridad mejoró ligeramente. La gente vive con el tema en la mente, independientemente de si se siente segura en lo personal.
+
+## 5.5. Gráfica 5. Seguridad en el trabajo
+El trabajo es donde muchas personas pasan la mayor parte de su día. Sentirse seguro en el empleo no solo afecta la productividad, sino la salud mental y la disposición para salir de casa. Esta gráfica muestra el porcentaje de queretanos que declararon sentirse seguros en su centro laboral. A diferencia de la percepción general sobre el estado, este indicador se enfoca en un espacio específico y cotidiano: la oficina, la fábrica o el taller.
+
+```{r grafica5_seguridad en el trabajo}
+ggplot(resultados, aes(x = factor(año))) +
+  geom_col(aes(y = 100), fill = "#ECF0F1", width = 0.7) +
+  geom_col(aes(y = porc_seguros_trabajo, fill = porc_seguros_trabajo), width = 0.7) +
+  scale_fill_gradient(low = "#F39C12", high = "#E67E22") +
+  geom_text(aes(y = porc_seguros_trabajo, label = paste0(round(porc_seguros_trabajo, 1), "%")), 
+            vjust = -0.5, fontface = "bold") +
+  labs(title = "Sensación de seguridad en el entorno laboral en Querétaro",
+       subtitle = "Nivel de confianza en los centros de trabajo",
+       x = "Año de Referencia", y = "Porcentaje (%)") +
+  tema_reporte + theme(legend.position = "none")
+```
+La seguridad en el trabajo ha mejorado con el tiempo. Comenzó en 48.3% en 2019, se mantuvo similar en 2020 (48.0%) y luego subió por encima del 53% a partir de 2021, alcanzando su punto más alto en 2024 con 56.5%. Esto significa que actualmente más de la mitad de los trabajadores se sienten tranquilos en su empleo. Aunque la percepción general de seguridad en el estado ronda el 40%, en el entorno laboral la confianza es mayor. El trabajo parece ser un espacio relativamente más protegido que la calle o el transporte público.
+
+## 5.6. Gráfica 6. Desplazamiento por delincuencia
+Cuando la inseguridad se vuelve insoportable, algunas familias toman una decisión drástica: cambiarse de casa o incluso de ciudad. Esta gráfica muestra cuántos hogares en Querétaro reportaron haberse mudado por miedo a la delincuencia. No es un indicador de victimización directa, sino de cómo la violencia puede reconfigurar la vida cotidiana. A diferencia de la preocupación o la percepción, aquí vemos una acción concreta: el desplazamiento forzado por la falta de seguridad.
+
+```{r grafica6_desplazamiento por delincuencia}
+ggplot(resultados, aes(x = factor(año), y = mudanza_delincuencia)) +
+  geom_col(fill = "#FF7F50", alpha = 0.8) +
+  geom_text(aes(label = format(round(mudanza_delincuencia, 0), big.mark = ",")), vjust = -0.5) +
+  labs(title = "Hogares que cambiaron de residencia por delincuencia en Querétaro",
+       subtitle = "Migración interna forzada por factores de inseguridad",
+       x = "Año de Referencia", y = "Número de Hogares") +
+  tema_reporte
+```
+El número de hogares que se mudaron por delincuencia ha fluctuado, pero con un alarmante repunte al final. Pasó de 17,890 en 2019 a una baja en 2022-2023 (13,336), pero en 2024 saltó a 21,068, el valor más alto del periodo. Esto significa que más de 21 mil familias queretanas decidieron cambiar de residencia por miedo a la delincuencia. Aunque en años intermedios la cifra disminuyó, el aumento final es preocupante. 
+
+## 5.7. Gráfica 7. Percepción hacia los jueces
+
+Los jueces son los encargados de impartir justicia: de ellos depende que los delincuentes sean castigados y las víctimas reparadas. La percepción que la gente tiene sobre su honestidad o corrupción es clave, porque, como ha señalado Tyler (2006) en su estudio sobre la legitimidad de las instituciones, la confianza ciudadana es el pilar fundamental que determina la disposición de las personas para cooperar con el sistema legal y aceptar sus decisiones. Si la ciudadanía desconfía del sistema judicial, difícilmente denunciará o creerá en las instituciones. Esta gráfica muestra cómo han evolucionado esas opiniones en Querétaro.
+
+```{r grafica7_percepcion jueces}
+resultados_long <- resultados %>%
+  select(año, porc_jueces_corruptos, porc_jueces_no_corruptos, porc_jueces_ns_nc) %>%
+  pivot_longer(cols = -año, names_to = "categoria", values_to = "porcentaje") %>%
+  mutate(categoria = recode(categoria,
+                            "porc_jueces_corruptos" = "Corruptos",
+                            "porc_jueces_no_corruptos" = "No corruptos",
+                            "porc_jueces_ns_nc" = "No sabe"))
+ggplot(resultados_long, aes(x = año, y = porcentaje, fill = categoria)) +
+  geom_area(alpha = 0.7) +
+  facet_wrap(~ categoria) + 
+  scale_fill_manual(values = c("Corruptos" = "#D95F02", "No corruptos" = "#1B9E77", "No sabe" = "#7570B3")) +
+  labs(title = "Evolución de la percepción sobre jueces en Querétaro",
+       subtitle = "Distribución comparativa de las tres categorías de respuesta",
+       x = "Año de Referencia", y = "Porcentaje (%)", size=3) +
+  tema_reporte +
+  theme(legend.position = "none", strip.text = element_text(face = "bold", size = 11))
+```
+
+Será interesante analizar este dato en el futuro, especialmente tras la reciente reforma al Poder Judicial en México y los casos escandalosos que se hicieron de conocimiento público, aunque no se refieran exclusivamente a jueces de Querétaro. Estos eventos podrían modificar la confianza ciudadana. Por ahora, los números reflejan un déficit importante: la mayoría no confía plenamente en los jueces.
+
+## 5.8. Gráfica 8. Hogares con víctimas menores de edad
+Esta gráfica muestra cuántos hogares en Querétaro reportaron tener al menos una víctima menor de edad. A diferencia de la mudanza por delincuencia (que refleja una decisión familiar), aquí medimos el impacto directo de la criminalidad en los más jóvenes. Es una estadística difícil de ver, pero necesaria para dimensionar el problema.
+
+```{r grafica8_victimas menores}
+ggplot(resultados, aes(x = factor(año), y = hogares_vict_menores)) +
+  geom_col(fill = "#6A5ACD", alpha = 0.8) +
+  geom_text(aes(label = format(round(hogares_vict_menores, 0), big.mark = ",")), vjust = -0.5) +
+  labs(title = "Hogares con víctimas menores de edad en Querétaro",
+       subtitle = "Impacto de la victimización en núcleos familiares",
+       x = "Año de Referencia", y = "Número de Hogares") +
+  tema_reporte
+```
+
+Los números son muy variables, pero muestran un preocupante repunte en 2023, con 45,886 hogares afectados, la cifra más alta del periodo. En 2019 eran 35,398; bajaron en 2020 y 2022, pero volvieron a subir drásticamente. Aunque en 2024 descendieron a 34,037, siguen siendo un nivel alto. Esto significa que, en el peor año, más de 45 mil familias queretanas vivieron con un niño o adolescente víctima de delito. Es una llamada de atención sobre la urgencia de proteger a la infancia.
+
+## 5.9. Gráfica 9. Vandalismo en el hogar
+
+El vandalismo —rayones en fachadas, daños a la propiedad, grafitis— a menudo se minimiza por no ser un delito grave. Sin embargo, afecta la convivencia y la sensación de orden en los barrios. Esta gráfica muestra cuántos hogares en Querétaro reportaron haber sufrido actos vandálicos. A diferencia de los homicidios o las víctimas menores, el vandalismo es más frecuente y puede ser un termómetro del deterioro social y la falta de vigilancia.
+```{r grafica9_vandalismo}
+ggplot(resultados, aes(x = factor(año), y = vandalismo_hogar)) +
+  geom_segment(aes(xend = factor(año), y = 0, yend = vandalismo_hogar), 
+               color = "#E7298A", size = 1) +
+  geom_point(color = "#E7298A", size = 5) +
+  coord_flip() +
+  geom_text(aes(label = format(vandalismo_hogar, big.mark = ",")), 
+            hjust = -0.3,   # ajuste fino para separar del punto
+            vjust = 0.5,    # centrado vertical
+            size = 3.5) +
+  labs(title = "Incidencia de vandalismo en el hogar en Querétaro",
+       subtitle = "Casos registrados de daños a la propiedad",
+       x = "Año de Referencia", y = "Total Hogares") +
+  # Expandir el límite del eje horizontal (que ahora es el eje y) para dar espacio a las etiquetas
+  scale_y_continuous(expand = expansion(mult = c(0.05, 0.2))) +
+  tema_reporte
+```
+
+El vandalismo ha ido en aumento sostenido hasta 2023. Comenzó en 129,831 hogares en 2019, se mantuvo similar en 2020, y luego creció año tras año hasta alcanzar su punto máximo en 2023: 189,143 hogares afectados. En 2024 bajó ligeramente a 169,579, pero sigue siendo una cifra muy alta. Esto significa que en el peor año, cerca de 189 mil viviendas queretanas sufrieron daños por vandalismo. Aunque no es un delito mayor, su magnitud refleja un entorno de descuido y poca denuncia.
+
+## 5.10. Gráfica 10. Hogares con homicidio doloso
+
+El homicidio es el delito más grave y, afortunadamente, el menos frecuente. Esta gráfica muestra cuántos hogares en Querétaro reportaron haber sufrido un homicidio doloso (asesinato intencionado). A diferencia del vandalismo o la mudanza, que afectan a muchos, el homicidio es un evento extremo que revela los puntos más críticos de la violencia en el estado.
+
+```{r grafica10_homocidio doloso}
+  ggplot(resultados, aes(x = factor(año), y = homicidio_hogar)) +
+  geom_col(fill = "#5D6D7E", alpha = 0.9) +
+  geom_text(aes(label = homicidio_hogar), vjust = -0.5, fontface = "bold") +
+  labs(title = "Incidencia de homicidio doloso por hogar En Querétaro",
+       subtitle = "Frecuencia absoluta reportada",
+       x = "Año de Referencia", y = "Número de Casos") +
+  tema_reporte
+```
+
+La tendencia es descendente con un repunte final. En 2019 hubo 1,573 hogares afectados; la cifra cayó drásticamente a 294 en 2021 y a 246 en 2023, el punto más bajo. Sin embargo, en 2024 subió a 860 casos, más del triple que el año anterior. Aunque los números son pequeños comparados con otros delitos, el aumento reciente es preocupante. Cada uno de esos hogares vivió una tragedia. Monitorear este indicador es clave para entender la evolución de la violencia letal en Querétaro.
+
+# 6. Análisis a Nivel Municipal: Zona Metropolitana de Querétaro
+
+## 6.1. Marco Metodológico y Uso de los Factores de Expansión
+
+Hasta ahora hemos revisado los indicadores de seguridad viendo a Querétaro como un bloque completo. El problema es que la realidad en las calles y el miedo a la delincuencia no se reparten de forma idéntica en todo el territorio. Cada colonia y cada calle tienen dinámicas distintas. Por eso, el siguiente paso lógico es abrir los datos y enfocarnos en la zona donde se concentra la mayor parte de la población y el movimiento económico: la mancha urbana de Querétaro, Corregidora y El Marqués.
+
+Estos tres municipios forman lo que el INEGI llama Área Urbana de Interés (AUI), la cual está registrada formalmente en los catálogos de la ENVIPE bajo el código de área urbana 36. Cuando se diseñó la encuesta, se estableció que la representatividad estadística a nivel municipal está condicionada estrictamente a esta zona. Para hacer el cálculo de forma correcta, es obligatorio dejar de usar los pesos generales de la encuesta y aplicar los factores de expansión urbana: FAC_ELE_AM si analizamos las respuestas de las personas, y FAC_HOG_AM si revisamos los datos de las viviendas.
+
+Si intentáramos hacer este mismo cálculo para municipios que están fuera de la AUI, como San Juan del Río, Cadereyta o Jalpan, estaríamos cometiendo un error metodológico grave. El INEGI no recolectó suficientes encuestas en esos lugares para que los resultados sean confiables por separado. Forzar los datos para sacar conclusiones de esos municipios nos daría números equivocados y engañosos.
+
+## 6.2. Por qué los datos viejos se ven tan inestables (Ruido Estadístico)
+
+Para leer bien las gráficas de los municipios, hay que ver con mucho cuidado lo que pasó entre 2019 y 2023. En esos cinco años, el número de casas encuestadas en cada municipio fue muy bajo debido al diseño de las Unidades Primarias de Muestreo (UPM), que son los conjuntos de manzanas o colonias que el INEGI elige al azar para ir a encuestar. El caso más crítico fue El Marqués, donde el marco de muestreo limitaba la recolección de datos a una sola UPM (una sola localidad urbana) para representar a todo el municipio.
+
+En estadística, cuando el tamaño de la muestra se reduce drásticamente frente a una población, el margen de error aumenta significativamente, un principio fundamental documentado en las técnicas de muestreo de Cochran (1977). En la práctica, esto genera un alto ruido estadístico, donde variaciones menores en la muestra se magnifican al aplicar el factor de expansión. Por ello, los picos y caídas en las gráficas no reflejan cambios reales en la seguridad, sino la inestabilidad inherente a muestras reducidas.
+
+Todo esto cambió para el año de referencia 2024. El INEGI actualizó sus mapas y amplió drásticamente la cobertura en campo, aumentando la cantidad de UPM y dispersándolas por el territorio. Empezaron a incluir fraccionamientos nuevos y zonas en pleno crecimiento que antes ignoraban, como Zakia, Colinas de La Piedad, El Mirador y La Pradera. Al meter más viviendas y de colonias más diversas a la muestra, los datos se estabilizaron. Esto nos da una base mucho más sólida y limpia para analizar el presente y el futuro.
+
+De todos modos, decidimos dejar los datos inestables (2019-2023) en el reporte por tres razones claras:
+
+Muestran la fragmentación del estado: Dejan en claro que la inseguridad no se vive igual en Querétaro que en Corregidora o El Marqués.
+
+Ayudan a ver la tendencia general: Aunque los números exactos bailen un poco por el error de la muestra, las líneas permiten ver qué zonas tienen problemas de fondo.
+
+Justifican la importancia de medir mejor: Son la prueba de por qué el INEGI necesitaba ampliar la muestra, tal como lo hizo en la última encuesta.
+
+En resumen, cuando revisen los brincos drásticos de los primeros años, tómenlos con pinceladas de duda. Lo ideal es concentrarse en las distancias generales entre los municipios y darle mucho más peso a los datos de 2024, que son el reflejo más limpio y real de lo que pasa hoy en Querétaro.
+
+
+```{r preparacion_municipios, echo=FALSE, message=FALSE, warning=FALSE}
+
+# ==============================================================================
+# PREPARACIÓN DE DATOS MUNICIPALES (Oculto en el PDF)
+# ==============================================================================
+
+# Leemos de nuevo la base completa para tener todos los niveles
+datos_completos <- bind_rows(lapply(archivos, read_csv))  
+
+# Base para valores absolutos (Solo los 3 municipios)
+datos_mun <- datos_completos %>% 
+  filter(geografia %in% c("Querétaro", "Corregidora", "El Marqués")) %>%
+  arrange(año)
+
+# Base para valores relativos (Estado + 3 municipios para comparar)
+datos_comp <- datos_completos %>% 
+  filter(geografia %in% c("Querétaro (Estado)", "Querétaro", "Corregidora", "El Marqués")) %>%
+  arrange(año)
+
+# Paletas de colores institucionales y limpias
+colores_absolutos <- c("Querétaro" = "#2E8B57", "Corregidora" = "#3498DB", "El Marqués" = "#E74C3C")
+colores_relativos <- c("Querétaro (Estado)" = "#2C3E50", "Querétaro" = "#2E8B57", 
+                       "Corregidora" = "#3498DB", "El Marqués" = "#E74C3C")
+
+```
+
+## 6.2. Gráfica 11. Crecimiento en la zona metropolitana
+
+El primer paso para dimensionar el reto de la seguridad es entender cuántos somos. La gráfica revela la enorme diferencia en el volumen de habitantes entre la capital y sus municipios vecinos. Querétaro mantiene una tendencia de crecimiento constante, superando holgadamente el millón de adultos, mientras que Corregidora y El Marqués, aunque con poblaciones totales menores, muestran un ritmo de urbanización muy acelerado. Este aumento de residentes trae consigo más desarrollo, pero también exige que los servicios públicos y la vigilancia crezcan a la misma velocidad para evitar que la delincuencia se arraigue en los nuevos fraccionamientos.
+
+```{r grafica1_poblacion_mun, echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+ggplot(datos_mun, aes(x = factor(año), y = poblacion, color = geografia, group = geografia)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = comma) +
+  scale_color_manual(values = colores_absolutos) +
+  labs(title = "Crecimiento Poblacional en la Zona Metropolitana",
+       x = "Año", y = "Número de habitantes", color = "Municipio") +
+  tema_reporte
+```
+La capital queretana pasó de tener cerca de 538 mil adultos en 2019 a superar los 800 mil en 2024. Por su parte, Corregidora creció aceleradamente, brincando de 92 mil a más de 148 mil habitantes en ese mismo lapso. El caso de El Marqués ilustra perfectamente la limitación de la encuesta en sus inicios: en los primeros años el registro era de apenas unos miles, pero para 2024, al visitar los nuevos fraccionamientos, la población capturada saltó a casi 125 mil adultos. Nuestra zona urbana explotó en tamaño.
+
+
+## 6.3. Gráfica 12. Tasa de Victimización
+
+Una cosa es la cantidad de personas y otra muy distinta qué tan probable es sufrir un delito al salir a la calle. Al comparar la tasa de victimización, notamos que la capital queretana suele mantenerse por encima de la línea oscura que marca el promedio de todo el estado. Esto tiene sentido: hay más concentración de comercios, más tráfico de personas y, lamentablemente, más oportunidades para el delito. Por otro lado, las líneas de Corregidora y El Marqués muestran picos y caídas bastante bruscas antes de 2024; como explicamos en la introducción metodológica, esto es un eco de los años en que se tocaron muy pocas puertas. Sin embargo, al observar el dato más reciente y robusto, vemos cómo las tres zonas convergen cerca de las 30 mil víctimas por cada cien mil habitantes, recordándonos que el riesgo es una realidad compartida en toda el área urbana.
+
+```{r grafica2_tasa_mun, echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+ggplot(datos_comp, aes(x = factor(año), y = tasa_victimizacion, color = geografia, group = geografia)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_y_continuous(labels = comma) +
+  scale_color_manual(values = colores_relativos) +
+  labs(title = "Tasa de Victimización",
+       subtitle = "Víctimas por cada 100,000 habitantes",
+       x = "Año", y = "Tasa", color = "Región") +
+  tema_reporte
+
+### El peso del miedo en la vida diaria
+```
+La probabilidad de sufrir un delito en la capital siempre ha estado por encima del promedio estatal. Comenzó con una tasa altísima de 40,587 víctimas por cada cien mil habitantes en 2019, para luego estabilizarse cerca de las 34,385 en 2024. Corregidora arrancó en casi 29,821 y cerró el periodo rebasando las 31,242 víctimas. Para 2024, con datos más firmes, El Marqués registró una tasa superior a las 27,444. Prácticamente en toda la zona metropolitana, alrededor de tres de cada diez personas fueron víctimas del delito recientemente.
+
+
+## 6.4. Gráfica 13. Percepción de Seguridad
+Los números fríos sobre los delitos no cuentan toda la historia; tal como han señalado Gabriel y Greve (2003), la tranquilidad mental —afectada por el miedo al delito— es un determinante crítico de la calidad de vida de los ciudadanos. Cuando se le pregunta a las personas si se sienten seguras viviendo en su estado, el panorama es revelador. La capital y Corregidora siguen un patrón casi idéntico al promedio estatal, manteniéndose casi siempre por debajo del 50% de personas que afirman sentirse a salvo.
+
+```{r graficas_3_miedo_mun, echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Porcentaje de seguros en el estado
+ggplot(datos_comp, aes(x = factor(año), y = porc_seguros_estado, color = geografia, group = geografia)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = colores_relativos) +
+  labs(title = "Sentimiento de Seguridad en el Estado",
+       subtitle = "Porcentaje de personas que se sienten seguras",
+       x = "Año", y = "% de Población", color = "Región") +
+  tema_reporte
+```
+En 2019, la mitad de los habitantes de la capital (51.5%) se sentía segura viviendo en el estado, pero esa tranquilidad cayó a 44.8% para 2024. El promedio estatal también tuvo un ligero declive, bajando del 44.2% al 41.1%. Irónicamente, El Marqués mostró en su medición más robusta de 2024 que el 58.2% de sus encuestados se sienten a salvo, siendo el nivel de tranquilidad más alto de la zona metropolitana en ese año.
+
+
+## 6.5. Gráfica 14. Preocupación por Temas de Delincuencia
+Estar preocupado por la delincuencia no es solo una idea abstracta; significa cambiar de ruta al manejar, no dejar salir a los hijos de noche o gastar los ahorros en poner rejas. La gráfica de preocupación es un espejo de esta tensión constante. Vemos que en los tres municipios, más del 80% de la población vive con esta carga. Es notable cómo en el último periodo, a pesar de las ligeras variaciones en otros indicadores, el nivel de alerta ciudadana se mantuvo en lo más alto.
+
+```{r graficas_4_miedo_mun, echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Porcentaje de preocupados
+ggplot(datos_comp, aes(x = factor(año), y = porc_preocupados, color = geografia, group = geografia)) +
+  geom_line(size = 1.2, linetype = "dashed") +
+  geom_point(size = 3) +
+  scale_color_manual(values = colores_relativos) +
+  labs(title = "Preocupación por la Delincuencia",
+       subtitle = "Porcentaje de habitantes que viven preocupados",
+       x = "Año", y = "% de Población", color = "Región") +
+  tema_reporte
+```
+Vivir en estado de alerta es la norma. En 2019, el 86.7% de los capitalinos y el 85.2% en Corregidora vivían preocupados por la delincuencia. Lejos de mejorar, para 2024 esos niveles rompieron la barrera del 90%: casi 91% en Querétaro y un alarmante 93.4% en Corregidora. Incluso el promedio general de todo el estado subió a 85.3% al cierre del periodo. La sensación de peligro está más viva que nunca.
+
+
+## 6.6. Gráfica 15. Preocupación de Seguridad en el Trabajo
+
+La sombra de intranquilidad nos sigue incluso fuera de casa. Quienes salen a ganarse la vida todos los días llevan consigo el estrés de la calle hasta la puerta de sus empleos. Apenas un poco más de la mitad de los trabajadores metropolitanos sienten que su entorno laboral es un refugio seguro. Trabajar con miedo nunca dará los mejores resultados, lo que nos advierte que la inseguridad también es un freno silencioso para el bienestar económico.
+
+```{r graficas_5_miedo_mun, echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Seguros en el trabajo
+ggplot(datos_comp, aes(x = factor(año), y = porc_seguros_trabajo, color = geografia, group = geografia)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = colores_relativos) +
+  labs(title = "Percepción de Seguridad en el Trabajo",
+       x = "Año", y = "% que se siente seguro", color = "Región") +
+  tema_reporte
+```
+El refugio laboral ha tenido altibajos, pero muestra signos positivos. Al inicio del periodo, apenas el 51.2% de los trabajadores en la capital y el 58.2% en Corregidora se sentían seguros en sus empleos. Afortunadamente, para 2024 hubo una mejora generalizada: la capital subió a 55.8%, el promedio estatal alcanzó el 56.5% y El Marqués destacó con un 66.2% de personas que logran trabajar sin miedo.
+
+
+## 6.7. Gráfica 16. Hogares con Víctimas de Delitos
+La calle puede sentirse hostil, pero el verdadero golpe emocional ocurre cuando la violencia cruza el umbral de la vivienda. Al observar el total de hogares donde al menos un miembro sufrió un delito, la capital queretana dibuja una montaña abrumadora frente a sus vecinos por el simple hecho de ser mucho más grande. Hablamos de decenas de miles de casas afectadas cada año.
+
+```{r graficas_8_hogares_mun , echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Hogares con víctimas (Barras agrupadas para comparar volumen real)
+ggplot(datos_mun, aes(x = factor(año), y = hogares_vict_menores, fill = geografia)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_manual(values = colores_absolutos) +
+  labs(title = "Hogares con Víctimas de Delitos",
+       x = "Año", y = "Total de hogares", fill = "Municipio") +
+  tema_reporte
+```
+En 2019, más de 15,600 hogares en la capital reportaron haber sido víctimas de algún delito. Para 2024, esa cifra aumentó ligeramente a 16,800 familias afectadas en su entorno. En contraste, Corregidora vio una disminución en este rubro, pasando de casi 3,600 casos al inicio a poco más de 2,200 al final del periodo analizado.
+
+
+## 6.8. Gráfica 17. Vandalismo en Hogares
+
+Al desglosar qué tipo de afectaciones ocurren en las viviendas, el vandalismo se lleva una parte importante. Muchos podrían considerarlo un problema menor, pero que te rompan una ventana o pintarrajeen la fachada de tu casa rompe la paz de cualquier familia. Lo preocupante de estas barras no es solo el daño físico; el vandalismo suele ser la antesala de delitos mayores. Es el reflejo de un entorno donde hay descuido, poca vigilancia y donde los infractores asumen que no habrá castigo.
+
+```{r graficas_9_hogares_mun , echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Vandalismo en el hogar
+ggplot(datos_mun, aes(x = factor(año), y = vandalismo_hogar, fill = geografia)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_manual(values = colores_absolutos) +
+  labs(title = "Hogares afectados por Vandalismo",
+       x = "Año", y = "Total de casos reportados", fill = "Municipio") +
+  tema_reporte
+```
+Las pintas y daños materiales son un dolor de cabeza constante en Querétaro capital, arrancando con poco más de 89 mil casos en 2019 y superando los 92,300 hogares vandalizados en 2024. Corregidora también encendió las alarmas, pues los reportes de daños a viviendas casi se triplicaron en este periodo, saltando de 4,645 incidentes a más de 13,100 en tan solo cinco años.
+
+
+## 6.9. Gráfica 18. Hogares con Homicidios Dolosos
+Llegamos al indicador más trágico y, afortunadamente, el menos frecuente. Contar los hogares que sufrieron el asesinato intencional de uno de sus miembros nos muestra el lado más oscuro de la inseguridad. Aquí las barras son pequeñas en comparación con otros delitos, pero el peso del dolor en cada unidad es devastador. Querétaro concentra la mayoría de estos eventos extremos. Aunque los números suben y bajan con el paso de los años, la sola presencia de estas barras nos recuerda que la violencia letal sigue siendo una herida profunda en la región.
+
+```{r graficas_10_hogares_mun , echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+# Homicidios en el hogar
+ggplot(datos_mun, aes(x = factor(año), y = homicidio_hogar, fill = geografia)) +
+  geom_col(position = "dodge", alpha = 0.9) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_manual(values = colores_absolutos) +
+  labs(title = "Homicidios Dolosos en el Entorno Familiar",
+       x = "Año", y = "Frecuencia absoluta", fill = "Municipio") +
+  tema_reporte
+```
+En el indicador más doloroso de todos, la capital registró más de 1,500 hogares tocados por homicidios durante 2019. Aunque la cifra tuvo un descenso drástico, reportando 300 casos para 2024, Querétaro sigue siendo el municipio que concentra la mayor tragedia humana de la región metropolitana. Afortunadamente, en las muestras analizadas de 2019 y 2024, ni Corregidora ni El Marqués registraron eventos letales en las viviendas.
+
+
+## 6.10. Gráfica 19. Desplazamiento por Delincuencia
+
+Quizá no hay decisión más dura para una familia que verse obligada a empacar sus cosas, abandonar su patrimonio y buscar un nuevo techo simplemente porque el entorno se volvió insoportable. Estas barras nos muestran el momento exacto en el que el miedo le gana a la estabilidad. Naturalmente, por su peso demográfico, Querétaro capital agrupa la inmensa mayoría de estos desplazamientos forzados, alcanzando miles de hogares reubicados en los años más críticos. Es un indicador muy crudo de cómo la violencia desdibuja el tejido social, obligando a las familias a huir para poder empezar de cero.
+
+```{r grafica6_mudanza_mun , echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+ggplot(datos_mun, aes(x = factor(año), y = mudanza_delincuencia, fill = geografia)) +
+  geom_col(position = "dodge", alpha = 0.8) +
+  scale_y_continuous(labels = comma) +
+  scale_fill_manual(values = colores_absolutos) +
+  labs(title = "Mudanzas Forzadas por la Inseguridad",
+       subtitle = "Familias que cambiaron de residencia por miedo al delito",
+       x = "Año", y = "Hogares reubicados", fill = "Municipio") +
+  tema_reporte
+```
+El miedo obliga a hacer maletas. En 2019, 11,783 familias de la capital tuvieron que abandonar su residencia original por culpa de la delincuencia. Para 2024, aunque la cifra bajó a 9,117, la herida sigue abierta. Lo más preocupante ocurrió en Corregidora, donde las mudanzas forzadas se dispararon de apenas 638 casos al inicio a más de 4,180 hogares reubicados al final del periodo.
+
+
+## 6.11. Gráfica 20. Percepción Hacia los Jueces
+
+Para cerrar el ciclo de este análisis, debemos mirar hacia la justicia. La percepción que tenemos sobre los jueces es el termómetro perfecto para medir la fe ciudadana en las instituciones. Si las familias sienten que quienes deben aplicar la ley son corruptos, las denuncias formales caen en picada. La gráfica muestra que la desconfianza hacia los jueces fluctúa entre el 15% y más del 30% en la zona metropolitana, con Corregidora mostrando un pico de escepticismo en los datos más recientes que incluso supera al promedio estatal. Sin fe en la autoridad encargada de castigar al culpable, todo el esfuerzo previo por mejorar la seguridad en las calles pierde su eslabón más importante.
+
+```{r grafica7_jueces_mun , echo=FALSE, warning=FALSE, fig.width=7, fig.height=4.5}
+ggplot(datos_comp, aes(x = factor(año), y = porc_jueces_corruptos, color = geografia, group = geografia)) +
+  geom_line(size = 1.2) +
+  geom_point(size = 3) +
+  scale_color_manual(values = colores_relativos) +
+  labs(title = "Percepción de Corrupción en Jueces",
+       subtitle = "Porcentaje que considera corruptas a las autoridades judiciales",
+       x = "Año", y = "% de Población", color = "Región") +
+  tema_reporte
+```
+La desconfianza en quienes imparten justicia es un problema crónico. En 2019, el 29.8% de los capitalinos consideraba que los jueces eran corruptos. Para 2024, esa cifra en la capital bajó al 25.6%, pero en Corregidora el escepticismo se disparó alcanzando un 32.6%, ubicándose muy por encima del promedio estatal del 21.3%. La fe en las autoridades judiciales está profundamente fracturada.
+
+
+# 7. Conclusión: Más allá de los números, la realidad queretana
+El análisis de los datos de la ENVIPE 2020‑2025 para Querétaro y su zona metropolitana permite extraer varias conclusiones fundamentales. En primer lugar, el acelerado crecimiento poblacional del estado —más del 30% entre 2019 y 2024, superando 1.8 millones de adultos— ha traído consigo un reto enorme para la tranquilidad de sus habitantes. La tasa de victimización pasó de 28,148 a 28,790 por cada 100 mil habitantes en el mismo periodo, lo que indica que la probabilidad de ser víctima no ha disminuido a pesar del dinamismo económico. Apenas cuatro de cada diez adultos queretanos se sienten seguros en su estado, y la percepción de seguridad se ha mantenido estancada alrededor del 40% durante todo el periodo, evidenciando un déficit crónico de confianza en las condiciones de seguridad pública. En contraste, la preocupación por la delincuencia —narcotráfico, inseguridad, corrupción— supera el 85% en los años recientes, reflejando un clima social de alerta permanente.
+
+Al acercar la lupa a los municipios que concentran la mayor parte de la población y la actividad económica (Querétaro, Corregidora y El Marqués), se observan diferencias relevanten. Querétaro capital registra las tasas de victimización más altas y el mayor número absoluto de hogares afectados por delitos. Corregidora mostró un alarmante aumento en las mudanzas forzadas por inseguridad, pasando de 638 a más de 4,180 hogares. En cambio, El Marqués alcanzó la percepción de seguridad más alta en 2024 (58.2%), aunque con una muestra que solo se volvió representativa ese año. El análisis también nos puso frente a un espejo incómodo sobre nuestras instituciones: la proporción de personas que consideran corruptos a los jueces se mantiene en niveles críticos (entre el 21% y el 32% según el municipio). Esta desconfianza en el sistema de justicia es un obstáculo estructural para la denuncia y la rendición de cuentas; sin una institución jurídica independiente y eficaz, cualquier estrategia de seguridad quedará incompleta.
+
+En términos metodológicos, el trabajo evidenció que, antes de 2024, la muestra en Corregidora y El Marqués era insuficiente para producir estimaciones estables, aún siendo considerados "idóneos" por la ENVIPE. Los picos y caídas bruscas en esos años son más reflejo de la imprecisión que de cambios reales en la delincuencia. La ampliación de la cobertura en 2024 mejoró significativamente la fiabilidad. Esto confirma que la ENVIPE, si bien es robusta a nivel estatal, debe mantener y profundizar el desglose geográfico para ofrecer información confiable a nivel municipal.
+
+Finalmente, detrás de cada indicador hay consecuencias tangibles: hogares que invierten en protecciones en lugar de desarrollo personal, trabajadores que no se sienten seguros en sus empleos, fachadas vandalizadas que erosionan la convivencia y, sobre todo, miles de familias que han tenido que abandonar su residencia por miedo. El desplazamiento forzado por delincuencia afectó a más de 21 mil hogares en 2024, la cifra más alta del periodo. El verdadero costo de la inseguridad se está pagando con la libertad y la tranquilidad ciudadana. Este reporte ha demostrado, con base en la metodología oficial de la ENVIPE, que Querétaro enfrenta desafíos significativos en materia de victimización, percepción de inseguridad y confianza institucional. La información generada —rigurosa, desagregada y contextualizada— es una herramienta para el diseño de políticas públicas. Corresponde ahora a las autoridades y a la sociedad civil utilizar esta evidencia para implementar acciones que reduzcan la incidencia delictiva, restauren la confianza en las instituciones y devuelvan a los queretanos la tranquilidad que merecen.
+
+
+## Referencias Bibliográficas
+
+**Fuentes de Datos Oficiales (INEGI)**
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2020). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2020*. https://www.inegi.org.mx/programas/envipe/2020/
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2021). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2021*. https://www.inegi.org.mx/programas/envipe/2021/
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2022). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2022*. https://www.inegi.org.mx/programas/envipe/2022/
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2023). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2023*. https://www.inegi.org.mx/programas/envipe/2023/
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2024). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2024*. https://www.inegi.org.mx/programas/envipe/2024/
+
+\noindent \hangindent=1.25cm
+Instituto Nacional de Estadística y Geografía (INEGI). (2025). *Encuesta Nacional de Victimización y Percepción sobre Seguridad Pública (ENVIPE) 2025*. https://www.inegi.org.mx/programas/envipe/2025/
+
+\vspace{0.5cm}
+**Herramientas y Software Analítico**
+
+\noindent \hangindent=1.25cm
+R Core Team. (2023). *R: A language and environment for statistical computing*. R Foundation for Statistical Computing, Vienna, Austria. https://www.R-project.org/
+
+\noindent \hangindent=1.25cm
+Wickham, H., et al. (2019). *Welcome to the tidyverse*. Journal of Open Source Software, 4(43), 1686. https://doi.org/10.21105/joss.01686
+
+\noindent \hangindent=1.25cm
+Wickham, H. (2016). *ggplot2: Elegant Graphics for Data Analysis*. Springer-Verlag New York. https://ggplot2.tidyverse.org
+
+\vspace{0.5cm}
+**Referencias Teóricas**
+
+\noindent \hangindent=1.25cm
+Cochran, W.G. (1977) Sampling Techniques. 3rd Edition, John Wiley & Sons, New York.
+
+\noindent \hangindent=1.25cm
+Di Tella, R., Galiani, S., & Schargrodsky, E. (2010). Crime distribution and victim behavior during a crime wave. American Economic Review, 100(2), 252-256.
+
+\noindent \hangindent=1.25cm
+Gabriel, U., & Greve, W. (2003). The psychology of fear of crime: Conceptual and methodological perspectives. British Journal of Criminology, 43(3), 600–614.
+
+\noindent \hangindent=1.25cm
+Tyler, T. R. (2006). Why People Obey the Law. Princeton University Press.

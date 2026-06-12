@@ -1,0 +1,16 @@
+.Rhistory
+.Rapp.history
+.RData
+.RDataTmp
+.RUserData
+*-Ex.R
+/*.tar.gz
+/*.Rcheck/
+.Rproj.user/
+vignettes/*.html
+vignettes/*.pdf
+.httr-oauth
+/*_cache/
+/cache/
+sandbox/
+.Renviron
